@@ -1,0 +1,289 @@
+/* Basic Styling for Worksheet Generator Page */
+body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+.container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #343a40;
+    margin-bottom: 10px;
+}
+
+p {
+    text-align: center;
+    color: #6c757d;
+    margin-bottom: 30px;
+}
+
+.breadcrumb {
+    margin-bottom: 20px;
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.breadcrumb a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+/* Form Elements */
+.form-section {
+    margin-bottom: 25px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #495057;
+}
+
+input[type="file"],
+input[type="text"],
+textarea {
+    display: block;
+    width: calc(100% - 22px); /* Account for padding/border */
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1em;
+}
+
+textarea {
+    min-height: 80px;
+    font-family: sans-serif;
+    resize: vertical;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* Worksheet Specifics */
+.checkbox-group label {
+    display: inline-block;
+    margin-right: 15px;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+small {
+    display: block;
+    margin-top: -5px;
+    margin-bottom: 10px;
+    font-size: 0.85em;
+    color: #6c757d;
+}
+
+/* Loading Indicator */
+.loading-indicator {
+    display: none; /* Hidden by default */
+    text-align: center;
+    padding: 20px;
+    margin-top: 15px;
+    font-style: italic;
+    color: #6c757d;
+}
+
+.loading-indicator span:first-child { /* Spinner */
+    display: inline-block;
+    border: 4px solid #e9ecef; /* Light grey */
+    border-top: 4px solid #28a745; /* Green for worksheet */
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#worksheet-tip {
+    display: inline; /* Keep tip on same line as spinner */
+    font-weight: bold;
+}
+
+/* Preview Area */
+.preview-area {
+    margin-top: 30px;
+    padding: 20px;
+    border: 1px dashed #adb5bd;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+}
+
+.preview-area h3 {
+    margin-top: 0;
+    color: #495057;
+    margin-bottom: 15px;
+}
+
+#worksheet-output-preview {
+    min-height: 100px;
+    background-color: #fff; /* White background for preview content */
+    padding: 15px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.download-buttons button {
+    margin-right: 10px;
+    background-color: #28a745; /* Green for download */
+}
+
+.download-buttons button:hover {
+    background-color: #218838;
+}
+
+.download-buttons button:disabled {
+     background-color: #cccccc;
+     cursor: not-allowed;
+}
+
+.radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 5px;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+    transition: background-color 0.2s;
+}
+
+.radio-group label:hover {
+    background-color: #e9e9e9;
+}
+
+.radio-group input[type="radio"] {
+    margin-right: 5px;
+}
+
+.radio-group label input[type="radio"]:checked + span {
+    font-weight: bold;
+}
+
+.direct-download-link {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 8px 15px;
+    background-color: #4caf50;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.direct-download-link:hover {
+    background-color: #45a049;
+}
+
+/* Add styling to the status box if not already present */
+.status-box {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 15px 0;
+    padding: 15px;
+    background-color: #f9f9f9;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    position: relative;
+    min-height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.current-status {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    font-weight: bold;
+}
+
+.status-box p.error {
+    color: #dc3545;
+    font-weight: bold;
+    background-color: #f8d7da;
+    border-left: 3px solid #dc3545;
+    padding-left: 5px;
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.status-box p.error-hint {
+    color: #6c757d;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 5px;
+}
+
+.progress-bar {
+    height: 4px;
+    background: linear-gradient(to right, #4caf50, #8bc34a, #cddc39);
+    background-size: 200% 100%;
+    margin-top: 10px;
+    border-radius: 2px;
+    animation: progress-animation 1.5s infinite ease-in-out;
+}
+
+@keyframes progress-animation {
+    0% {
+        background-position: 100% 0;
+    }
+    100% {
+        background-position: 0 0;
+    }
+} 

@@ -1,0 +1,119 @@
+/* Main Styling for Home Page */
+body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 20px auto;
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #343a40;
+    margin-bottom: 10px;
+}
+
+h2 {
+    color: #343a40;
+    margin-top: 0;
+}
+
+p {
+    text-align: center;
+    color: #6c757d;
+    margin-bottom: 30px;
+}
+
+/* Tool Cards */
+.tools-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+    margin: 40px 0;
+}
+
+.tool-card {
+    flex: 1;
+    padding: 25px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    background-color: #f8f9fa;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.tool-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.tool-card h2 {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.tool-card p {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.tool-card ul {
+    margin-bottom: 25px;
+    padding-left: 25px;
+    color: #495057;
+}
+
+.tool-card li {
+    margin-bottom: 8px;
+}
+
+/* Button Styling */
+.btn {
+    display: block;
+    width: 100%;
+    padding: 12px 0;
+    background-color: #007bff;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+}
+
+/* Footer */
+footer {
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+    text-align: center;
+}
+
+footer p {
+    font-size: 0.9em;
+    color: #adb5bd;
+    margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .tools-container {
+        flex-direction: column;
+    }
+    
+    .tool-card {
+        margin-bottom: 20px;
+    }
+} 

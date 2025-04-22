@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Docs</title>
+    <link rel="stylesheet" href="text2doc.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Text to Docs</h1>
+        <p>Upload a PDF file or select a folder containing PDF files to extract text and convert it to Markdown.</p>
+
+        <div class="form-group">
+            <label for="text2doc-file">Choose PDF File or Folder:</label>
+            <input type="file" id="text2doc-file" name="text2doc-file" accept=".pdf" webkitdirectory multiple>
+            <small>Select a single PDF or an entire folder. Folder selection support varies by browser (Chrome, Edge, Firefox recommended).</small>
+        </div>
+
+        <div class="form-group">
+            <label for="text2doc-prompt">Optional Prompt (e.g., specific formatting instructions):</label>
+            <textarea id="text2doc-prompt" name="text2doc-prompt" rows="3" placeholder="Enter optional instructions for Gemini..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="text2doc-output-filename">Output Filename (or base name for folder):</label>
+            <input type="text" id="text2doc-output-filename" name="text2doc-output-filename" placeholder="e.g., my_document or reports_folder">
+        </div>
+
+        <button id="text2doc-submit" class="btn">Process Document/Folder</button>
+
+        <div id="text2doc-loading" class="loading-indicator" style="display: none;">
+            Processing... Please wait.
+        </div>
+
+        <div id="text2doc-output" class="output-area" style="display: none;">
+            <div class="toc-section">
+                <h2>Table of Contents</h2>
+                <div id="toc-preview" class="preview-box"></div>
+            </div>
+
+            <div class="markdown-section">
+                <h2>Raw Markdown</h2>
+                <div class="markdown-controls">
+                    <button id="add-section-break" class="btn" disabled>Add Section Break</button>
+                    <button id="process-sections" class="btn" disabled>Process</button>
+                </div>
+                <textarea id="text2doc-preview-area" class="editable-markdown" rows="15"></textarea>
+            </div>
+
+            <div class="download-section">
+                <button id="download-md" class="btn" disabled>Download Markdown/ZIP</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="text2doc.js"></script>
+</body>
+</html> 

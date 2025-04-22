@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worksheet Generator Tool</title>
+    <link rel="stylesheet" href="worksheet.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; Worksheet Generator
+        </nav>
+
+        <h1>Worksheet Generator</h1>
+        <p>Upload a source document, select desired question types, preview, and download your worksheet.</p>
+
+        <div class="form-section">
+            <label for="worksheet-file">Upload Source Document (Markdown):</label>
+            <input type="file" id="worksheet-file" name="worksheet-file" accept=".md">
+            <small><i>Upload a markdown (.md) file containing the content to generate questions from</i></small>
+        </div>
+
+        <div class="form-section">
+            <label>Select Question Types:</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="qtype" value="mcq"> Multiple Choice</label>
+                <label><input type="checkbox" name="qtype" value="fib"> Fill in the Blanks</label>
+                <label><input type="checkbox" name="qtype" value="tf"> True/False</label>
+                <label><input type="checkbox" name="qtype" value="short"> Short Answer</label>
+                <label><input type="checkbox" name="qtype" value="long"> Long Answer</label>
+                <!-- Add more dynamic checkboxes here if needed -->
+            </div>
+        </div>
+
+        <div class="form-section">
+            <label>Include Answers:</label>
+            <div class="radio-group">
+                <label><input type="radio" name="include-answers" value="with-answers" checked> With Answer Key</label>
+                <label><input type="radio" name="include-answers" value="without-answers"> Without Answers</label>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <label for="worksheet-output-filename">Output Filename:</label>
+            <input type="text" id="worksheet-output-filename" name="worksheet-output-filename" placeholder="generated_worksheet">
+            <small><i>(File extension will be added automatically based on download format)</i></small>
+        </div>
+
+        <button id="worksheet-submit">Generate Worksheet</button>
+
+        <div id="worksheet-loading" class="loading-indicator">
+            <span></span> <span id="worksheet-tip">Generating worksheet...</span>
+        </div>
+
+        <div id="worksheet-output" class="preview-area">
+            <h3>Worksheet Preview:</h3>
+             <div id="worksheet-output-preview">
+                <!-- Worksheet preview will appear here -->
+                <p>The worksheet preview will appear here after generation.</p>
+            </div>
+            <div class="download-buttons">
+                <button id="download-word" disabled>Download as Word (.docx)</button>
+                <button id="download-pdf" disabled>Download as PDF</button>
+            </div>
+        </div>
+
+    </div> <!-- /container -->
+
+    <script src="worksheet.js"></script>
+</body>
+</html> 
