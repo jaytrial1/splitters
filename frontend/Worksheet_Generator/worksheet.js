@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Worksheet Generator script loaded.');
 
-    // Define base URL to match the exact Flask server address
-    const baseUrl = 'http://127.0.0.1:5000';
+    // Define the base URL for API requests
+    const baseUrl = ''; // Use relative path for deployment
 
     const worksheetSubmit = document.getElementById('worksheet-submit');
     const worksheetLoading = document.getElementById('worksheet-loading');
@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 worksheetStatusBox.style.display = 'block';
                 worksheetStatusBox.innerHTML = `
                     <p class="error">Error: ${error.message}</p>
-                    <p class="error-hint">Check that the Flask server is running at http://127.0.0.1:5000</p>
+                    <p class="error-hint">Please try again later or check the server status.</p>
                 `;
                 alert('Error generating worksheet: ' + error.message);
             });
