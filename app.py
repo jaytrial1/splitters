@@ -12,6 +12,8 @@ import traceback
 import shutil
 import zipfile
 import glob
+import io
+import requests
 # Import the modules from the correct location
 try:
     from backend.ocr_formatting import main as ocr_process, clean_and_format_markdown, process_initial_markdown, process_sections
@@ -35,12 +37,15 @@ CORS(app, resources={r"/*": {"origins": "*"}})  # Enable CORS for all routes and
 BASE_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
 UPLOAD_DIR = BASE_DIR / "uploaded_files"
 PROCESSED_DIR = BASE_DIR / "processed_docs"
+STORAGE_DIR = BASE_DIR / "storage_folder"
 UPLOAD_DIR.mkdir(exist_ok=True)
 PROCESSED_DIR.mkdir(exist_ok=True)
+STORAGE_DIR.mkdir(exist_ok=True)
 
 print(f"Base directory: {BASE_DIR}")
 print(f"Upload directory: {UPLOAD_DIR}")
 print(f"Processed directory: {PROCESSED_DIR}")
+print(f"Storage directory: {STORAGE_DIR}")
 
 # Store processing status messages
 processing_status = {}
@@ -858,6 +863,170 @@ def download_folder():
         print(error_message, file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
         return jsonify({'error': error_message}), 500
+
+# --- New Route for Dropbox Link Processing ---
+@app.route('/process-dropbox-link', methods=['POST'])
+def process_dropbox_link():
+    try:
+        print("Received /process-dropbox-link request")
+        data = request.get_json()
+        if not data or 'dropbox_url' not in data:
+            print("No Dropbox URL provided in request body")
+            return jsonify({'error': 'No Dropbox URL provided'}), 400
+
+        dropbox_url = data['dropbox_url']
+        # Basic validation (optional, can be enhanced)
+        if not dropbox_url.startswith('https://www.dropbox.com/'):
+             print(f"Invalid Dropbox URL format: {dropbox_url}")
+             return jsonify({'error': 'Invalid Dropbox URL format'}), 400
+        if 'dl=1' not in dropbox_url:
+             print(f"URL does not contain 'dl=1': {dropbox_url}")
+             # Enforce dl=1 for direct download
+             return jsonify({'error': 'Dropbox URL must be a direct download link (ending in dl=1)'}), 400
+
+        print(f"Processing Dropbox URL: {dropbox_url}")
+
+        # Generate unique ID for this process
+        process_id = str(uuid.uuid4())
+        processing_status[process_id] = []
+        # Mark process type (optional, could be 'link' or adapt existing 'folder' type)
+        process_type[process_id] = 'folder' # Treat downloaded/extracted content as a folder
+
+        # Add first status message
+        processing_status[process_id].append("Received Dropbox link. Starting download...")
+
+        # Start processing in a separate thread
+        thread = threading.Thread(
+            target=process_link_thread,
+            args=(dropbox_url, process_id)
+        )
+        thread.daemon = True
+        thread.start()
+
+        return jsonify({
+            'status': 'processing',
+            'process_id': process_id
+        })
+
+    except Exception as e:
+        error_traceback = traceback.format_exc()
+        print(f"Error in process_dropbox_link: {str(e)}", file=sys.stderr)
+        print(f"Traceback: {error_traceback}", file=sys.stderr)
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+
+# --- New Thread Function for Link Processing ---
+def process_link_thread(dropbox_url, process_id):
+    # Create a custom print function that captures output for this thread
+    def custom_print(message):
+        print(f"[{process_id}] {message}") # Still print to console with ID
+        if process_id in processing_status:
+            processing_status[process_id].append(message)
+        else:
+            print(f"[{process_id}] Error: Status dictionary key not found.", file=sys.stderr)
+
+    try:
+        custom_print("Downloading file from Dropbox...")
+        response = requests.get(dropbox_url, stream=True, timeout=300) # Use stream=True, add timeout
+        response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
+
+        custom_print("Download successful. Preparing for extraction...")
+
+        # Define the unique directory for extraction
+        extract_path = STORAGE_DIR / process_id
+        extract_path.mkdir(exist_ok=True)
+        custom_print(f"Extracting files to: {extract_path}")
+
+        # Extract zip file from response content
+        with zipfile.ZipFile(io.BytesIO(response.content)) as z:
+            z.extractall(path=extract_path)
+
+        custom_print("Extraction complete. Starting main processing...")
+
+        # --- Trigger Existing Processing Logic ---
+        # Determine which processing logic to call.
+        # Assuming the goal is similar to the original folder processing:
+        # We need an output base name. Let's derive it or use the process_id.
+        output_base_name = f"processed_{process_id}"
+        processed_output_folder = PROCESSED_DIR / output_base_name # Where final results will go
+
+        # Reuse or adapt the logic from `process_folder_thread`
+        # This part might need adjustments based on exactly what `process_folder_thread` does
+        # and what the output of the OCR process should be named/where it should go.
+
+        # Simplified example: Assume ocr_process can work on a directory
+        # Placeholder for actual processing call - adapt as needed!
+        # You might need to iterate through files in `extract_path` if `ocr_process` expects single files.
+        # Or adapt `ocr_process` / `process_folder_thread` logic.
+
+        # Example: Directly calling ocr_process if it handles directories
+        # (This is a GUESS - replace with your actual logic flow)
+        # result = ocr_process(str(extract_path), str(processed_output_folder), print_fn=custom_print)
+
+        # Alternative: Adapting process_folder_thread logic structure (safer)
+        num_files = len(list(extract_path.glob('**/*.pdf'))) # Count PDFs
+        custom_print(f"Found {num_files} PDF files in extracted folder.")
+        processed_files_info = [] # To store info about processed files
+
+        # Iterate and process each PDF (similar structure to process_folder_thread)
+        for pdf_file in extract_path.glob('**/*.pdf'):
+            relative_path = pdf_file.relative_to(extract_path)
+            custom_print(f"Processing file: {relative_path}")
+
+            # Define output path for this specific file's markdown
+            # Place it within a subfolder in PROCESSED_DIR related to the process_id
+            md_output_dir = PROCESSED_DIR / process_id
+            md_output_dir.mkdir(exist_ok=True)
+            output_md_path = md_output_dir / f"{relative_path.stem}_output.md"
+
+            try:
+                # Call the core OCR process for the single file
+                result = ocr_process(str(pdf_file), str(output_md_path), print_fn=custom_print)
+
+                if result:
+                    output_path_str, toc = result
+                    processed_files_info.append({
+                        'name': pdf_file.name,
+                        'output_path': str(output_md_path),
+                        'toc': toc
+                    })
+                    custom_print(f"Successfully processed: {pdf_file.name}")
+                else:
+                    custom_print(f"ERROR: OCR process failed for file: {pdf_file.name}")
+
+            except Exception as file_e:
+                 error_msg = f"Error processing file {pdf_file.name}: {str(file_e)}"
+                 custom_print(f"ERROR: {error_msg}")
+                 traceback.print_exc(file=sys.stderr)
+
+
+        custom_print("All files processed.")
+        # Signal completion similar to process_folder_thread
+        processing_status[process_id].append("PROCESSED_FILES:" + json.dumps(processed_files_info))
+        processing_status[process_id].append("DONE:") # Mark as done
+
+        # Optional: Clean up the extracted folder in storage_folder after processing
+        # shutil.rmtree(extract_path)
+        # custom_print(f"Cleaned up temporary folder: {extract_path}")
+
+    except requests.exceptions.RequestException as req_e:
+        error_message = f"Error downloading from Dropbox: {str(req_e)}"
+        custom_print(f"ERROR: {error_message}")
+        print(error_message, file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+    except zipfile.BadZipFile as zip_e:
+        error_message = f"Error extracting zip file: {str(zip_e)}. It might be corrupted or not a zip file."
+        custom_print(f"ERROR: {error_message}")
+        print(error_message, file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+    except Exception as e:
+        error_message = f"Error in processing thread: {str(e)}"
+        custom_print(f"ERROR: {error_message}") # Add error to status
+        print(error_message, file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+    finally:
+        # Ensure DONE signal is sent even if errors occurred mid-processing
+        if process_id in processing_status and not any(msg.startswith("DONE:") for msg in processing_status[process_id]):
+             processing_status[process_id].append("DONE:") # Mark as done after errors
 
 if __name__ == '__main__':
     print("Starting Flask server on http://127.0.0.1:5000")

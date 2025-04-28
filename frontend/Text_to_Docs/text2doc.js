@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const addSectionBreakBtn = document.getElementById('add-section-break');
     const processSectionsBtn = document.getElementById('process-sections');
     const downloadMdBtn = document.getElementById('download-md');
-    const text2docFileInput = document.getElementById('text2doc-file');
+    const dropboxUrlInput = document.getElementById('dropbox-url-input');
     const text2docFilenameInput = document.getElementById('text2doc-output-filename');
     const text2docPrompt = document.getElementById('text2doc-prompt');
     const text2docStatusBox = document.createElement('div');
@@ -569,28 +569,41 @@ document.addEventListener('DOMContentLoaded', () => {
         processSectionsBtn.addEventListener('click', processSections);
     }
 
-    // Update start processing function to clear any previous session
+    // Update start processing function to use Dropbox link
     if (text2docSubmit) {
         text2docSubmit.addEventListener('click', () => {
-            console.log('Process Document/Folder button clicked.');
-            
+            console.log('Process Dropbox Link button clicked.');
+
             // Clear any previous session
             sessionStorage.removeItem('text2docSession');
-            
-            const files = text2docFileInput.files;
-            if (!files || files.length === 0) {
-                alert('Please select a PDF file or a folder containing PDF files.');
-                return;
-            }
-            if (!text2docFilenameInput.value.trim()) {
-                alert('Please enter an output filename or base name.');
-                text2docFilenameInput.focus();
-                return;
-            }
+            currentProcessId = null; // Reset process ID
+            fileQueue = []; // Reset file queue
+            currentFileIndex = -1;
+            folderProcessId = null;
+            if (statusCheckInterval) clearInterval(statusCheckInterval);
 
-            // Determine if it's a folder upload
-            isFolderUpload = files.length > 1 || (files.length === 1 && files[0].webkitRelativePath !== "");
-            console.log(`Folder upload detected: ${isFolderUpload}`);
+            const dropboxUrl = dropboxUrlInput.value.trim();
+            const outputBaseName = text2docFilenameInput.value.trim(); // Still useful for potential output naming
+            const promptValue = text2docPrompt.value; // Get prompt value
+
+            // --- Input Validation ---
+            if (!dropboxUrl) {
+                alert('Please paste a Dropbox direct download URL (ending in dl=1).');
+                dropboxUrlInput.focus();
+                return;
+            }
+            // Basic check for dl=1
+            if (!dropboxUrl.includes('dl=1')) {
+                alert('The URL must be a direct download link ending with dl=1');
+                dropboxUrlInput.focus();
+                return;
+            }
+            // Check if output name is provided (optional but potentially useful)
+            // if (!outputBaseName) {
+            //     alert('Please enter an output base name.');
+            //     text2docFilenameInput.focus();
+            //     return;
+            // }
 
             // Show loading, hide output area, clear status box, disable buttons
             text2docLoading.style.display = 'block';
@@ -600,56 +613,31 @@ document.addEventListener('DOMContentLoaded', () => {
             downloadMdBtn.disabled = true;
             addSectionBreakBtn.disabled = true;
             processSectionsBtn.disabled = true;
-            
+
             // Reset status tracking
             lastStatusIndex = 0;
             currentProcessId = null;
-            if (statusCheckInterval) {
-                clearInterval(statusCheckInterval);
-            }
 
-            // Create FormData for file upload
-            const formData = new FormData();
-            const pdfFiles = [];
-            for (let i = 0; i < files.length; i++) {
-                // Only include PDF files
-                if (files[i].type === 'application/pdf' || files[i].name.toLowerCase().endsWith('.pdf')) {
-                    formData.append('files', files[i], files[i].name); // Use 'files' for multiple files
-                    pdfFiles.push(files[i].name);
-                } else if (isFolderUpload) {
-                    console.warn(`Skipping non-PDF file: ${files[i].name}`);
-                }
-            }
-
-            if (pdfFiles.length === 0) {
-                alert('No PDF files found in the selection.');
-                text2docLoading.style.display = 'none';
-                return;
-            }
-
-            console.log(`Uploading ${pdfFiles.length} PDF files:`, pdfFiles);
-
-            formData.append('prompt', text2docPrompt.value);
-            formData.append('output_base_name', text2docFilenameInput.value.trim()); // Add base name for folder processing
-
-            // Choose the correct endpoint
-            const endpoint = isFolderUpload ? `${baseUrl}/process-folder` : `${baseUrl}/process-pdf`;
-            // If it's a single file, rename 'files' back to 'file' for the existing endpoint
-            if (!isFolderUpload && formData.has('files')) {
-                 formData.append('file', formData.get('files'));
-                 formData.delete('files');
-            }
-
-            // Send to backend
-            fetch(endpoint, {
+            // --- Send URL to Backend --- 
+            console.log(`Sending Dropbox URL to backend: ${dropboxUrl}`);
+            fetch(`${baseUrl}/process-dropbox-link`, {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    dropbox_url: dropboxUrl,
+                    prompt: promptValue, // Send prompt along if needed by backend processing
+                    output_base_name: outputBaseName // Send base name
+                })
             })
             .then(response => {
                 if (!response.ok) {
                     console.error('Server response:', response.status, response.statusText);
-                    return response.text().then(text => {
-                        throw new Error(`Upload failed: ${response.status} ${response.statusText}${text ? ' - ' + text : ''}`);
+                    return response.json().then(err => { // Try to get JSON error details
+                         throw new Error(`Failed to start processing: ${err.error || response.statusText}`);
+                    }).catch(() => { // Fallback if no JSON body
+                         throw new Error(`Failed to start processing: ${response.status} ${response.statusText}`);
                     });
                 }
                 return response.json();
@@ -658,21 +646,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Processing started:', data);
                 if (data.process_id) {
                     currentProcessId = data.process_id;
-                    // Start checking for status updates
+                    isFolderUpload = true; // Treat link processing as a folder type
+                    // Start checking for status updates using the existing function
                     statusCheckInterval = setInterval(checkProcessStatus, 1000);
+                     // Save session state immediately
+                    saveSession(); 
                 } else {
-                    throw new Error('No process ID returned');
+                    throw new Error('No process ID returned from backend');
                 }
             })
             .catch(error => {
-                console.error('Error uploading file(s):', error);
+                console.error('Error starting Dropbox link processing:', error);
                 text2docLoading.style.display = 'none';
                 text2docStatusBox.style.display = 'block';
                 text2docStatusBox.innerHTML = `
                     <p class="error">Error: ${error.message}</p>
-                    <p class="error-hint">Please try again later or check the server status.</p>
+                    <p class="error-hint">Please check the URL and server status.</p>
                 `;
-                alert('Error uploading file(s): ' + error.message);
+                alert('Error starting process: ' + error.message);
             });
         });
     }

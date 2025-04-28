@@ -1,6 +1,7 @@
 flask==3.0.2
 flask-cors==4.0.0
 werkzeug==3.0.1
+requests
 mistralai==1.6.0
 google-generativeai==0.3.2
 python-dotenv==1.0.1

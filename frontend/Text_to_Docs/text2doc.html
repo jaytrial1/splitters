@@ -12,22 +12,22 @@
         <p>Upload a PDF file or select a folder containing PDF files to extract text and convert it to Markdown.</p>
 
         <div class="form-group">
-            <label for="text2doc-file">Choose PDF File or Folder:</label>
-            <input type="file" id="text2doc-file" name="text2doc-file" accept=".pdf" webkitdirectory multiple>
-            <small>Select a single PDF or an entire folder. Folder selection support varies by browser (Chrome, Edge, Firefox recommended).</small>
+            <label for="dropbox-url-input">Dropbox Direct Link (dl=1):</label>
+            <input type="url" id="dropbox-url-input" name="dropbox-url-input" placeholder="Paste Dropbox link ending in dl=1">
+            <small>Example: https://www.dropbox.com/s/yourlinkid/filename.zip?dl=1 (must end with dl=1)</small>
         </div>
 
         <div class="form-group">
-            <label for="text2doc-prompt">Optional Prompt (e.g., specific formatting instructions):</label>
-            <textarea id="text2doc-prompt" name="text2doc-prompt" rows="3" placeholder="Enter optional instructions for Gemini..."></textarea>
+            <label for="text2doc-output-filename">Output Base Name:</label>
+            <input type="text" id="text2doc-output-filename" name="text2doc-output-filename" placeholder="e.g., processed_notes">
         </div>
 
         <div class="form-group">
-            <label for="text2doc-output-filename">Output Filename (or base name for folder):</label>
-            <input type="text" id="text2doc-output-filename" name="text2doc-output-filename" placeholder="e.g., my_document or reports_folder">
+            <label for="text2doc-prompt">Optional Prompt/Instructions:</label>
+            <textarea id="text2doc-prompt" name="text2doc-prompt" rows="2" placeholder="Enter any specific instructions for processing..."></textarea>
         </div>
 
-        <button id="text2doc-submit" class="btn">Process Document/Folder</button>
+        <button id="text2doc-submit" class="btn">Process Dropbox Link</button>
 
         <div id="text2doc-loading" class="loading-indicator" style="display: none;">
             Processing... Please wait.
