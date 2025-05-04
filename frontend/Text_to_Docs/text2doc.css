@@ -263,4 +263,454 @@ textarea {
 .download-section {
     margin-top: 20px;
     text-align: center;
+}
+
+/* File Manager Styling - Updated */
+.file-manager {
+    margin-top: 40px;
+    border-top: 2px solid #ddd;
+    padding-top: 30px;
+    position: relative;
+}
+
+/* Add a divider label */
+.file-manager:before {
+    content: "File Management";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #f8f9fa;
+    padding: 0 15px;
+    font-size: 14px;
+    color: #6c757d;
+    font-weight: bold;
+}
+
+.file-manager h2 {
+    margin-top: 0;
+    color: #343a40;
+    margin-bottom: 10px;
+}
+
+.file-manager p {
+    margin-bottom: 20px;
+}
+
+.folder-tabs {
+    display: flex;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.tab-btn {
+    padding: 8px 15px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 15px;
+    color: #495057;
+    margin-right: 10px;
+}
+
+.tab-btn.active {
+    border-bottom: 2px solid #4CAF50;
+    font-weight: bold;
+    color: #4CAF50;
+}
+
+.tab-btn:hover {
+    background-color: #f8f9fa;
+}
+
+.refresh-btn {
+    margin-left: auto;
+    padding: 6px 10px;
+    font-size: 16px;
+    background-color: #f8f9fa;
+    color: #495057;
+}
+
+.refresh-btn:hover {
+    background-color: #e9ecef;
+}
+
+.folder-contents {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+}
+
+.selection-info {
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.delete-btn {
+    background-color: #dc3545;
+    color: white;
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.delete-btn:hover:not(:disabled) {
+    background-color: #c82333;
+}
+
+.file-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 0;
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+    background-color: #f8f9fa;
+    padding: 6px 12px;
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.breadcrumb-item {
+    display: inline-block;
+    color: #007bff;
+}
+
+.breadcrumb-item.active {
+    color: #6c757d;
+    font-weight: bold;
+}
+
+.breadcrumb-item:hover {
+    text-decoration: underline;
+}
+
+.file-items-container {
+    padding: 5px 0;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.file-item:hover {
+    background-color: #f8f9fa;
+}
+
+.file-item.parent-dir {
+    background-color: #f0f0f0;
+    cursor: pointer;
+}
+
+.file-item.parent-dir:hover {
+    background-color: #e6e6e6;
+}
+
+.file-item:last-child {
+    border-bottom: none;
+}
+
+.file-checkbox {
+    margin-right: 10px;
+}
+
+.file-icon {
+    margin-right: 10px;
+    color: #6c757d;
+    width: 20px;
+    text-align: center;
+}
+
+.file-icon.folder {
+    color: #ffc107;
+}
+
+.file-icon.file {
+    color: #17a2b8;
+}
+
+.file-icon.parent {
+    color: #6c757d;
+}
+
+.file-name {
+    flex-grow: 1;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.folder-name {
+    color: #007bff;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+}
+
+.folder-name:hover {
+    text-decoration: underline;
+}
+
+.file-size {
+    font-size: 12px;
+    color: #6c757d;
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+}
+
+/* Special styling for folder sizes */
+.folder-size {
+    color: #28a745;
+    font-weight: bold;
+    position: relative;
+}
+
+/* Size indicator badge */
+.size-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #28a745;
+    border-radius: 50%;
+    margin-left: 5px;
+}
+
+/* Hover effect to make size more prominent */
+.file-item:hover .folder-size {
+    text-decoration: underline;
+}
+
+.loading-files {
+    padding: 20px;
+    text-align: center;
+    color: #6c757d;
+}
+
+.empty-folder {
+    padding: 20px;
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Confirmation Dialog */
+.confirm-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.dialog-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 4px;
+    width: 400px;
+    max-width: 90%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dialog-title {
+    margin-top: 0;
+    color: #dc3545;
+}
+
+.dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.dialog-btn {
+    padding: 8px 15px;
+    margin-left: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-cancel {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-confirm {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Add responsive design for mobile */
+@media screen and (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        padding: 15px;
+    }
+    
+    h1 {
+        font-size: 24px;
+    }
+    
+    p {
+        font-size: 14px;
+    }
+    
+    /* Form elements */
+    input[type="file"],
+    input[type="text"],
+    input[type="url"],
+    textarea {
+        font-size: 16px; /* Prevents iOS zoom on focus */
+        padding: 12px;
+    }
+    
+    .btn {
+        width: 100%;
+        padding: 14px;
+        margin-bottom: 10px;
+        font-size: 16px;
+    }
+    
+    /* File manager adjustments */
+    .folder-tabs {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .tab-btn {
+        flex: 1;
+        text-align: center;
+        margin-right: 0;
+        min-width: 120px;
+    }
+    
+    .refresh-btn {
+        width: auto;
+        flex: none;
+        padding: 8px 12px;
+    }
+    
+    .toolbar {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .selection-info {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .delete-btn {
+        width: 100%;
+        padding: 10px;
+    }
+    
+    .file-item {
+        padding: 12px 8px;
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+    
+    .file-name {
+        font-size: 15px;
+        flex: 1;
+        min-width: 0; /* Allows text-overflow to work properly */
+    }
+    
+    .file-checkbox {
+        transform: scale(1.2);
+        margin-right: 12px;
+    }
+    
+    .file-icon {
+        font-size: 18px;
+    }
+    
+    /* Breadcrumb scrolling */
+    .breadcrumbs {
+        white-space: nowrap;
+        overflow-x: auto;
+        padding: 10px;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .breadcrumb-item {
+        padding: 5px;
+    }
+    
+    /* Confirmation dialog */
+    .dialog-content {
+        width: 90%;
+        padding: 15px;
+    }
+    
+    .dialog-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .dialog-btn {
+        width: 100%;
+        margin-left: 0;
+        padding: 12px;
+    }
+}
+
+/* Add special handling for very small screens */
+@media screen and (max-width: 480px) {
+    .breadcrumb-item {
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        vertical-align: middle;
+    }
+    
+    .file-size {
+        display: inline-block;
+        font-size: 10px;
+        min-width: 45px;
+        text-align: right;
+        margin-left: 5px;
+        white-space: nowrap;
+    }
+    
+    .file-item.parent-dir .file-name {
+        font-size: 14px;
+    }
+    
+    .markdown-controls {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .markdown-controls .btn {
+        margin-bottom: 5px;
+    }
 } 

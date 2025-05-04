@@ -17,6 +17,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const text2docPrompt = document.getElementById('text2doc-prompt');
     const text2docStatusBox = document.createElement('div');
     
+    // File Manager Elements
+    const fileManager = document.getElementById('file-manager');
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const refreshFoldersBtn = document.getElementById('refresh-folders');
+    const deleteSelectedBtn = document.getElementById('delete-selected');
+    const fileList = document.getElementById('file-list');
+    const selectionInfo = document.querySelector('.selection-info');
+    
+    let currentFolder = 'processed'; // Default to processed_docs folder
+    let selectedFiles = [];
+    let totalSelectedSize = 0;
+    
     // Create a status box for displaying backend messages
     text2docStatusBox.id = 'text2doc-status-box';
     text2docStatusBox.className = 'status-box';
@@ -39,6 +51,368 @@ document.addEventListener('DOMContentLoaded', () => {
     let fileQueue = [];
     let currentFileIndex = -1;
     let folderProcessId = null;
+    
+    // File Manager Functions
+    
+    // Handle tab switching
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            currentFolder = button.getAttribute('data-folder');
+            
+            // Reset selection when switching folders
+            selectedFiles = [];
+            totalSelectedSize = 0;
+            updateSelectionInfo();
+            
+            // Load folder contents
+            loadFolderContents(currentFolder, '');
+        });
+    });
+    
+    // Refresh folder contents
+    if (refreshFoldersBtn) {
+        refreshFoldersBtn.addEventListener('click', () => {
+            loadFolderContents(currentFolder, '');
+        });
+    }
+    
+    // Handle delete button
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', () => {
+            if (selectedFiles.length === 0) return;
+            
+            // Get display names for confirmation message
+            let displayNames = selectedFiles.map(file => file.split('/').pop());
+            if (displayNames.length > 3) {
+                displayNames = displayNames.slice(0, 3);
+                displayNames.push(`and ${selectedFiles.length - 3} more...`);
+            }
+            
+            showConfirmationDialog(
+                `Delete ${selectedFiles.length} item${selectedFiles.length > 1 ? 's' : ''}?`, 
+                `This will permanently delete: ${displayNames.join(', ')} from the ${currentFolder === 'processed' ? 'processed_docs' : 'storage_folder'} folder.`, 
+                () => {
+                    deleteSelectedFiles();
+                }
+            );
+        });
+    }
+    
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        
+        return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Create breadcrumb navigation
+    function createBreadcrumbs(path) {
+        const breadcrumbs = document.createElement('div');
+        breadcrumbs.className = 'breadcrumbs';
+        
+        // Add root
+        const rootLink = document.createElement('span');
+        rootLink.className = 'breadcrumb-item';
+        rootLink.textContent = currentFolder === 'processed' ? 'Processed Docs' : 'Storage';
+        rootLink.style.cursor = 'pointer';
+        rootLink.addEventListener('click', () => loadFolderContents(currentFolder, ''));
+        breadcrumbs.appendChild(rootLink);
+        
+        // If we're in a subfolder, add breadcrumb links
+        if (path) {
+            // Split path and build breadcrumb links
+            const parts = path.split('/');
+            let currentPath = '';
+            
+            parts.forEach((part, index) => {
+                // Add separator
+                const separator = document.createElement('span');
+                separator.textContent = ' / ';
+                breadcrumbs.appendChild(separator);
+                
+                // Add part link
+                currentPath = currentPath ? `${currentPath}/${part}` : part;
+                const partLink = document.createElement('span');
+                partLink.className = 'breadcrumb-item';
+                partLink.textContent = part;
+                
+                // Make all but the last item clickable
+                if (index < parts.length - 1) {
+                    partLink.style.cursor = 'pointer';
+                    const pathCopy = currentPath; // Create a copy for the closure
+                    partLink.addEventListener('click', () => loadFolderContents(currentFolder, pathCopy));
+                } else {
+                    partLink.className += ' active';
+                }
+                
+                breadcrumbs.appendChild(partLink);
+            });
+        }
+        
+        return breadcrumbs;
+    }
+    
+    // Load folder contents
+    function loadFolderContents(folderType, path = '') {
+        fileList.innerHTML = '<div class="loading-files">Loading folder contents...</div>';
+        
+        fetch(`${baseUrl}/list-folder-contents?folder=${folderType}&path=${encodeURIComponent(path)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    fileList.innerHTML = `<div class="empty-folder">Error: ${data.error}</div>`;
+                    return;
+                }
+                
+                // Clear list and add breadcrumbs
+                fileList.innerHTML = '';
+                const breadcrumbsContainer = createBreadcrumbs(path);
+                fileList.appendChild(breadcrumbsContainer);
+                
+                if (data.contents.length === 0) {
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.className = 'empty-folder';
+                    emptyMessage.textContent = 'This folder is empty';
+                    fileList.appendChild(emptyMessage);
+                    return;
+                }
+                
+                // Sort contents: folders first, then files, both alphabetically
+                data.contents.sort((a, b) => {
+                    if (a.type === b.type) {
+                        return a.name.localeCompare(b.name);
+                    }
+                    return a.type === 'folder' ? -1 : 1;
+                });
+                
+                // Create container for file items
+                const itemsContainer = document.createElement('div');
+                itemsContainer.className = 'file-items-container';
+                fileList.appendChild(itemsContainer);
+                
+                // Add parent directory navigation if in a subfolder
+                if (path) {
+                    const parentItem = document.createElement('div');
+                    parentItem.className = 'file-item parent-dir';
+                    
+                    const icon = document.createElement('span');
+                    icon.className = 'file-icon parent';
+                    icon.innerHTML = '📁';
+                    
+                    const fileName = document.createElement('span');
+                    fileName.className = 'file-name';
+                    fileName.textContent = '.. (Parent Directory)';
+                    
+                    parentItem.appendChild(icon);
+                    parentItem.appendChild(fileName);
+                    
+                    // Navigate to parent directory on click
+                    parentItem.addEventListener('click', () => {
+                        const parentPath = path.split('/').slice(0, -1).join('/');
+                        loadFolderContents(folderType, parentPath);
+                    });
+                    
+                    itemsContainer.appendChild(parentItem);
+                }
+                
+                data.contents.forEach(item => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.dataset.path = item.path;
+                    fileItem.dataset.size = item.size || 0;
+                    fileItem.dataset.type = item.type;
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'file-checkbox';
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            selectedFiles.push(item.path);
+                            totalSelectedSize += parseInt(item.size || 0);
+                        } else {
+                            const index = selectedFiles.indexOf(item.path);
+                            if (index !== -1) {
+                                selectedFiles.splice(index, 1);
+                                totalSelectedSize -= parseInt(item.size || 0);
+                            }
+                        }
+                        
+                        updateSelectionInfo();
+                    });
+                    
+                    const icon = document.createElement('span');
+                    icon.className = `file-icon ${item.type}`;
+                    icon.innerHTML = item.type === 'folder' ? '📁' : getFileIcon(item.name);
+                    
+                    const fileName = document.createElement('span');
+                    fileName.className = 'file-name';
+                    fileName.textContent = item.name;
+                    
+                    // If it's a folder, make it clickable to navigate into it
+                    if (item.type === 'folder') {
+                        fileName.className += ' folder-name';
+                        fileName.addEventListener('click', (event) => {
+                            event.stopPropagation(); // Prevent checkbox toggling
+                            const nextPath = path ? `${path}/${item.name}` : item.name;
+                            loadFolderContents(folderType, nextPath);
+                        });
+                    }
+                    
+                    const fileSize = document.createElement('span');
+                    fileSize.className = 'file-size';
+                    fileSize.textContent = item.size ? formatFileSize(item.size) : '';
+                    
+                    // Add a small indicator for folders with their size
+                    if (item.type === 'folder' && item.size > 0) {
+                        fileSize.className += ' folder-size';
+                        // Create a small badge indicator showing the folder has content
+                        const sizeIndicator = document.createElement('span');
+                        sizeIndicator.className = 'size-indicator';
+                        sizeIndicator.title = `Contains ${formatFileSize(item.size)}`;
+                        fileSize.appendChild(sizeIndicator);
+                    }
+                    
+                    fileItem.appendChild(checkbox);
+                    fileItem.appendChild(icon);
+                    fileItem.appendChild(fileName);
+                    fileItem.appendChild(fileSize);
+                    
+                    itemsContainer.appendChild(fileItem);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading folder contents:', error);
+                fileList.innerHTML = '<div class="empty-folder">Failed to load folder contents</div>';
+            });
+    }
+    
+    // Get appropriate icon based on file extension
+    function getFileIcon(filename) {
+        const extension = filename.split('.').pop().toLowerCase();
+        
+        const iconMap = {
+            'pdf': '📄',
+            'md': '📝',
+            'docx': '📄',
+            'doc': '📄',
+            'txt': '📄',
+            'zip': '🗜️',
+            'jpg': '🖼️',
+            'jpeg': '🖼️',
+            'png': '🖼️',
+            'gif': '🖼️'
+        };
+        
+        return iconMap[extension] || '📄';
+    }
+    
+    // Update selection info
+    function updateSelectionInfo() {
+        selectionInfo.textContent = `${selectedFiles.length} item${selectedFiles.length !== 1 ? 's' : ''} selected (${formatFileSize(totalSelectedSize)})`;
+        
+        deleteSelectedBtn.disabled = selectedFiles.length === 0;
+    }
+    
+    // Delete selected files
+    function deleteSelectedFiles() {
+        if (selectedFiles.length === 0) return;
+        
+        fetch(`${baseUrl}/delete-files`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                folder: currentFolder,
+                files: selectedFiles
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(`Error: ${data.error}`);
+                return;
+            }
+            
+            // Show success message
+            alert(`Successfully deleted ${data.deleted} item${data.deleted !== 1 ? 's' : ''}`);
+            
+            // Reset selection and reload current folder view
+            selectedFiles = [];
+            totalSelectedSize = 0;
+            updateSelectionInfo();
+            
+            // Get current path from breadcrumbs
+            const activeBreadcrumb = document.querySelector('.breadcrumb-item.active');
+            const path = activeBreadcrumb ? 
+                Array.from(document.querySelectorAll('.breadcrumb-item'))
+                    .filter(crumb => !crumb.classList.contains('active'))
+                    .slice(1) // Skip the root
+                    .map(crumb => crumb.textContent)
+                    .join('/') + 
+                    (activeBreadcrumb.textContent ? '/' + activeBreadcrumb.textContent : '')
+                : '';
+            
+            loadFolderContents(currentFolder, path || '');
+        })
+        .catch(error => {
+            console.error('Error deleting files:', error);
+            alert('Failed to delete files.');
+        });
+    }
+    
+    // Show confirmation dialog
+    function showConfirmationDialog(title, message, onConfirm) {
+        const dialog = document.createElement('div');
+        dialog.className = 'confirm-dialog';
+        
+        const dialogContent = document.createElement('div');
+        dialogContent.className = 'dialog-content';
+        
+        const dialogTitle = document.createElement('h3');
+        dialogTitle.className = 'dialog-title';
+        dialogTitle.textContent = title;
+        
+        const dialogMessage = document.createElement('p');
+        dialogMessage.textContent = message;
+        
+        const dialogButtons = document.createElement('div');
+        dialogButtons.className = 'dialog-buttons';
+        
+        const cancelButton = document.createElement('button');
+        cancelButton.className = 'dialog-btn btn-cancel';
+        cancelButton.textContent = 'Cancel';
+        cancelButton.addEventListener('click', () => {
+            document.body.removeChild(dialog);
+        });
+        
+        const confirmButton = document.createElement('button');
+        confirmButton.className = 'dialog-btn btn-confirm';
+        confirmButton.textContent = 'Delete';
+        confirmButton.addEventListener('click', () => {
+            document.body.removeChild(dialog);
+            onConfirm();
+        });
+        
+        dialogButtons.appendChild(cancelButton);
+        dialogButtons.appendChild(confirmButton);
+        
+        dialogContent.appendChild(dialogTitle);
+        dialogContent.appendChild(dialogMessage);
+        dialogContent.appendChild(dialogButtons);
+        
+        dialog.appendChild(dialogContent);
+        
+        document.body.appendChild(dialog);
+    }
+    
+    // Initial load of the processed folder
+    loadFolderContents('processed');
     
     // Try to restore session if page was refreshed during processing
     function tryRestoreSession() {
@@ -573,7 +947,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (text2docSubmit) {
         text2docSubmit.addEventListener('click', () => {
             console.log('Process Dropbox Link button clicked.');
-
+            
             // Clear any previous session
             sessionStorage.removeItem('text2docSession');
             currentProcessId = null; // Reset process ID
@@ -613,7 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
             downloadMdBtn.disabled = true;
             addSectionBreakBtn.disabled = true;
             processSectionsBtn.disabled = true;
-
+            
             // Reset status tracking
             lastStatusIndex = 0;
             currentProcessId = null;

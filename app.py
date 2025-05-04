@@ -1028,6 +1028,206 @@ def process_link_thread(dropbox_url, process_id):
         if process_id in processing_status and not any(msg.startswith("DONE:") for msg in processing_status[process_id]):
              processing_status[process_id].append("DONE:") # Mark as done after errors
 
+# --- New Route for Listing Folder Contents ---
+@app.route('/list-folder-contents', methods=['GET'])
+def list_folder_contents():
+    try:
+        folder_type = request.args.get('folder', 'processed')
+        path = request.args.get('path', '')  # Subfolder path
+        recursive = request.args.get('recursive', 'false').lower() == 'true'
+        
+        # Determine which folder to list based on the type
+        if folder_type == 'processed':
+            base_folder = PROCESSED_DIR
+        elif folder_type == 'storage':
+            base_folder = STORAGE_DIR
+        else:
+            return jsonify({'error': 'Invalid folder type'}), 400
+        
+        # Combine base folder with subfolder path if provided
+        if path:
+            target_folder = os.path.join(base_folder, path)
+            # Security check to prevent directory traversal
+            abs_path = os.path.abspath(target_folder)
+            if not abs_path.startswith(os.path.abspath(str(base_folder))):
+                return jsonify({'error': 'Access denied - invalid path'}), 403
+        else:
+            target_folder = base_folder
+        
+        if not os.path.exists(target_folder):
+            return jsonify({'error': f'Folder not found: {target_folder}'}), 404
+        
+        contents = []
+        folder_sizes = {}  # To track folder sizes
+        
+        # Calculate folder sizes - we need to do this first
+        if not recursive:
+            # For non-recursive listing, we still need to calculate folder sizes
+            for item in os.listdir(target_folder):
+                item_path = os.path.join(target_folder, item)
+                if os.path.isdir(item_path):
+                    folder_sizes[item] = get_folder_size(item_path)
+        
+        # List contents recursively if requested
+        if recursive:
+            for root, dirs, files in os.walk(target_folder):
+                # Get relative path from the base folder
+                rel_root = os.path.relpath(root, base_folder)
+                if rel_root == '.':
+                    rel_root = ''
+                
+                # Calculate size for this folder
+                folder_size = 0
+                for filename in files:
+                    try:
+                        file_path = os.path.join(root, filename)
+                        folder_size += os.path.getsize(file_path)
+                    except:
+                        pass
+                
+                # Store the folder size
+                folder_dir = os.path.basename(root)
+                folder_sizes[os.path.join(rel_root, folder_dir) if rel_root else folder_dir] = folder_size
+                
+                # Add folders
+                for dirname in dirs:
+                    dir_path = os.path.join(rel_root, dirname) if rel_root else dirname
+                    contents.append({
+                        'name': dirname,
+                        'path': dir_path,
+                        'type': 'folder',
+                        'size': 0,  # Will be updated later
+                        'parent': rel_root
+                    })
+                
+                # Add files
+                for filename in files:
+                    file_path = os.path.join(rel_root, filename) if rel_root else filename
+                    try:
+                        size = os.path.getsize(os.path.join(root, filename))
+                    except:
+                        size = 0
+                    
+                    contents.append({
+                        'name': filename,
+                        'path': file_path,
+                        'type': 'file',
+                        'size': size,
+                        'parent': rel_root
+                    })
+        else:
+            # List only direct contents of the folder
+            for item in os.listdir(target_folder):
+                item_path = os.path.join(target_folder, item)
+                rel_path = os.path.join(path, item) if path else item
+                
+                # Determine if it's a file or folder
+                is_folder = os.path.isdir(item_path)
+                
+                # Get file size (or folder size)
+                size = 0
+                if not is_folder:
+                    try:
+                        size = os.path.getsize(item_path)
+                    except:
+                        pass
+                else:
+                    # Use the pre-calculated folder size
+                    size = folder_sizes.get(item, 0)
+                
+                # Add item to contents list
+                contents.append({
+                    'name': item,
+                    'path': rel_path,
+                    'type': 'folder' if is_folder else 'file',
+                    'size': size,
+                    'parent': path
+                })
+        
+        # Update folder sizes in contents list for recursive listing
+        if recursive:
+            for item in contents:
+                if item['type'] == 'folder':
+                    item['size'] = folder_sizes.get(item['path'], 0)
+        
+        return jsonify({
+            'contents': contents,
+            'current_path': path
+        })
+        
+    except Exception as e:
+        error_message = f"Error listing folder contents: {str(e)}"
+        print(error_message, file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+        return jsonify({'error': error_message}), 500
+
+# Helper function to calculate folder size
+def get_folder_size(folder_path):
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(folder_path):
+        for filename in filenames:
+            try:
+                file_path = os.path.join(dirpath, filename)
+                total_size += os.path.getsize(file_path)
+            except:
+                pass
+    return total_size
+
+# --- New Route for Deleting Files ---
+@app.route('/delete-files', methods=['POST'])
+def delete_files():
+    try:
+        data = request.get_json()
+        if not data or 'files' not in data or 'folder' not in data:
+            return jsonify({'error': 'Invalid request data'}), 400
+        
+        files_to_delete = data['files']
+        folder_type = data['folder']
+        
+        if not files_to_delete:
+            return jsonify({'error': 'No files specified for deletion'}), 400
+        
+        # Determine the base folder
+        if folder_type == 'processed':
+            base_folder = PROCESSED_DIR
+        elif folder_type == 'storage':
+            base_folder = STORAGE_DIR
+        else:
+            return jsonify({'error': 'Invalid folder type'}), 400
+        
+        # Keep track of successfully deleted files
+        deleted_count = 0
+        
+        for file_path in files_to_delete:
+            # Resolve the absolute path
+            abs_path = os.path.join(base_folder, file_path)
+            
+            # Security check - ensure the file is within the allowed directory
+            if not os.path.abspath(abs_path).startswith(os.path.abspath(str(base_folder))):
+                print(f"Security warning: Attempted to delete file outside allowed directory: {abs_path}")
+                continue
+            
+            try:
+                if os.path.isfile(abs_path):
+                    os.remove(abs_path)
+                    deleted_count += 1
+                elif os.path.isdir(abs_path):
+                    shutil.rmtree(abs_path)
+                    deleted_count += 1
+            except Exception as e:
+                print(f"Error deleting {abs_path}: {str(e)}")
+        
+        return jsonify({
+            'success': True,
+            'deleted': deleted_count
+        })
+        
+    except Exception as e:
+        error_message = f"Error deleting files: {str(e)}"
+        print(error_message, file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+        return jsonify({'error': error_message}), 500
+
 if __name__ == '__main__':
     print("Starting Flask server on http://127.0.0.1:5000")
     app.run(host='0.0.0.0', port=5000, debug=True) 

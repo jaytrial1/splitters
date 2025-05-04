@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Text to Docs</title>
     <link rel="stylesheet" href="text2doc.css">
 </head>
@@ -50,6 +50,29 @@
 
             <div class="download-section">
                 <button id="download-md" class="btn" disabled>Download Markdown/ZIP</button>
+            </div>
+        </div>
+
+        <!-- File Manager Section (Moved to bottom) -->
+        <div id="file-manager" class="file-manager">
+            <h2>File Manager</h2>
+            <p>Manage your processed files and free up space.</p>
+            
+            <div class="folder-tabs">
+                <button class="tab-btn active" data-folder="processed">Processed Docs</button>
+                <button class="tab-btn" data-folder="storage">Storage</button>
+                <button id="refresh-folders" class="btn refresh-btn" title="Refresh folder contents">↻</button>
+            </div>
+            
+            <div class="folder-contents">
+                <div class="toolbar">
+                    <div class="selection-info">0 items selected (0 KB)</div>
+                    <button id="delete-selected" class="btn delete-btn" disabled>Delete Selected</button>
+                </div>
+                
+                <div class="file-list" id="file-list">
+                    <div class="loading-files">Loading folder contents...</div>
+                </div>
             </div>
         </div>
     </div>
